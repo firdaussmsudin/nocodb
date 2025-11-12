@@ -109,6 +109,7 @@
     "is-docker": "^2.2.1",
     "isomorphic-dompurify": "^2.25.0",
     "jsep": "^1.4.0",
+    "jsdom": "^26.1.0",
     "json5": "^2.2.3",
     "jsonfile": "^6.1.0",
     "jsonwebtoken": "^9.0.2",

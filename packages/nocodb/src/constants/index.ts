@@ -24,8 +24,10 @@ const parsedNcMaxTextLength =
     ? Number(NC_MAX_TEXT_LENGTH_ENV)
     : Infinity;
 
-if (!Number.isFinite(parsedNcMaxTextLength) || parsedNcMaxTextLength <= 0) {
-  throw new Error('NC_MAX_TEXT_LENGTH must be a positive number');
+if (NC_MAX_TEXT_LENGTH_ENV !== undefined) {
+  if (!Number.isFinite(parsedNcMaxTextLength) || parsedNcMaxTextLength <= 0) {
+    throw new Error('NC_MAX_TEXT_LENGTH must be a positive number');
+  }
 }
 
 export const NC_MAX_TEXT_LENGTH = parsedNcMaxTextLength;

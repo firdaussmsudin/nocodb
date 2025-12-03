@@ -95,10 +95,12 @@ jobs:
           pnpm run integrations:build && pnpm run registerIntegrations
 
       - name: Build nocodb and docker files
-        run: |
-          pnpm install --ignore-scripts --no-frozen-lockfile
-          pnpm run docker:build
         working-directory: ${{ env.working-directory }}
+        run: |
+          # Install all dependencies including nocodb-sdk
+          pnpm install --no-frozen-lockfile
+          # Build for docker
+          pnpm run docker:build
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0

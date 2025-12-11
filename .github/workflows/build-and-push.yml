@@ -13,6 +13,9 @@ env:
 jobs:
   buildx:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
     env:
       working-directory: ./packages/nocodb
     steps:
@@ -158,5 +161,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
+          provenance: false
+          sbom: false
           # Temporarily removed arm64 for testing - add back once build succeeds
           # platforms: linux/amd64,linux/arm64

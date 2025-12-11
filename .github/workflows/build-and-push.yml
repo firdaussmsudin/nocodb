@@ -19,6 +19,17 @@ jobs:
     env:
       working-directory: ./packages/nocodb
     steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -118,6 +129,9 @@ jobs:
           pnpm install --no-frozen-lockfile
           # Build for docker
           pnpm run docker:build
+          # Clean up to save space
+          pnpm store prune
+          df -h
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0

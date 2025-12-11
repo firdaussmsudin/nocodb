@@ -20,6 +20,18 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22.12.0
+
       - name: Get Docker Repository
         id: get-docker-repository
         run: |
@@ -52,16 +64,13 @@ jobs:
           echo DOCKER_BUILD_TAG: ${DOCKER_BUILD_TAG}
           echo DOCKER_BUILD_LATEST_TAG: ${DOCKER_BUILD_LATEST_TAG}
 
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref }}
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22.12.0
+      # CRITICAL: Build nocodb-sdk first
+      - name: Build nocodb-sdk
+        run: |
+          cd packages/nocodb-sdk
+          pnpm install --no-frozen-lockfile
+          pnpm run build
+          cd ../..
 
       - name: upgrade packages for nightly build or pr build
         if: ${{ github.event.inputs.targetEnv == 'DEV' || inputs.targetEnv == 'DEV' }}
@@ -89,14 +98,20 @@ jobs:
             NOCODB_SDK_PKG_NAME=nocodb-sdk-daily
           fi
 
-          pnpm install ${NOCODB_SDK_PKG_NAME}@${TAG}
+          # For local builds, use the workspace version
+          if [[ "$TARGET_ENV" == 'PROD' ]]; then
+            pnpm install
+          else
+            pnpm install ${NOCODB_SDK_PKG_NAME}@${TAG}
+          fi
+          
           cd ../../..
           pnpm run integrations:build && pnpm run registerIntegrations
 
       - name: Build nocodb and docker files
         working-directory: ${{ env.working-directory }}
         run: |
-          # Install all dependencies including nocodb-sdk
+          # Install all dependencies - this will link to the local nocodb-sdk workspace
           pnpm install --no-frozen-lockfile
           # Build for docker
           pnpm run docker:build
@@ -116,11 +131,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # - name: Login to DockerHub
-      #   uses: docker/login-action@v2.1.0
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.get-docker-repository.outputs.DOCKER_BUILD_TAG }}
+            type=raw,value=${{ steps.get-docker-repository.outputs.DOCKER_BUILD_LATEST_TAG }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -132,24 +157,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      #   uses: docker/build-push-action@v3.2.0
-      #   with:
-      #     context: ${{ env.working-directory }}
-      #     build-args: NC_VERSION=${{ steps.get-docker-repository.outputs.DOCKER_BUILD_TAG }}
-      #     platforms: linux/amd64,linux/arm64,linux/arm/v7
-      #     cache-from: type=local,src=/tmp/.buildx-cache
-      #     cache-to: type=local,dest=/tmp/.buildx-cache-new
-      #     push: true
-      #     labels: |
-      #       "service=nocodb"
-      #     tags: |
-      #       nocodb/${{ steps.get-docker-repository.outputs.DOCKER_REPOSITORY }}:${{ steps.get-docker-repository.outputs.DOCKER_BUILD_TAG }}
-      #       nocodb/${{ steps.get-docker-repository.outputs.DOCKER_REPOSITORY }}:${{ steps.get-docker-repository.outputs.DOCKER_BUILD_LATEST_TAG }}
-
-      #   # Temp fix
-      #   # https://github.com/docker/build-push-action/issues/252
-      #   # https://github.com/moby/buildkit/issues/1896
-      # - name: Move cache
-      #   run: |
-      #     rm -rf /tmp/.buildx-cache
-      #     mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          platforms: linux/amd64,linux/arm64

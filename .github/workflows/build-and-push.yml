@@ -1,6 +1,5 @@
 name: Build and Push NocoDB Image Try
 
-
 on:
   push:
     branches:
@@ -30,11 +29,11 @@ jobs:
           TARGET_ENV="${{ github.event.inputs.targetEnv || inputs.targetEnv || 'PROD' }}"
           CURRENT_VERSION="${{ github.event.inputs.currentVersion || inputs.currentVersion || 'N/A' }}"
           IS_DAILY="${{ inputs.isDaily || 'N' }}"
-          
+
           if [[ "$DOCKER_BUILD_TAG" =~ "-beta." ]]; then
             DOCKER_BUILD_LATEST_TAG=$(echo $DOCKER_BUILD_TAG | awk -F '-beta.' '{print $1}')-beta.latest
           fi
-          
+
           if [[ "$TARGET_ENV" == 'DEV' ]]; then
             if [[ "$CURRENT_VERSION" != 'N/A' ]]; then
               DOCKER_BUILD_TAG="${CURRENT_VERSION}-${DOCKER_BUILD_TAG}"
@@ -45,7 +44,7 @@ jobs:
               DOCKER_REPOSITORY=${DOCKER_REPOSITORY}-timely
             fi
           fi
-          
+
           echo "DOCKER_REPOSITORY=${DOCKER_REPOSITORY}" >> $GITHUB_OUTPUT
           echo "DOCKER_BUILD_TAG=${DOCKER_BUILD_TAG}" >> $GITHUB_OUTPUT
           echo "DOCKER_BUILD_LATEST_TAG=${DOCKER_BUILD_LATEST_TAG}" >> $GITHUB_OUTPUT
@@ -85,11 +84,11 @@ jobs:
           NOCODB_SDK_PKG_NAME=nocodb-sdk
           TARGET_ENV="${{ github.event.inputs.targetEnv || inputs.targetEnv || 'PROD' }}"
           TAG="${{ github.event.inputs.tag || inputs.tag || 'latest' }}"
-          
+
           if [[ "$TARGET_ENV" == 'DEV' ]]; then
             NOCODB_SDK_PKG_NAME=nocodb-sdk-daily
           fi
-          
+
           pnpm install ${NOCODB_SDK_PKG_NAME}@${TAG}
           cd ../../..
           pnpm run integrations:build && pnpm run registerIntegrations

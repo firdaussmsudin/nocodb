@@ -157,4 +157,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
+          # Temporarily removed arm64 for testing - add back once build succeeds
+          # platforms: linux/amd64,linux/arm64
